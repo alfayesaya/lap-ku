@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <title>Laporan Keuangan Harian</title>
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--tx:#1b2333;--mut:#6b7488;--bd:#e3e7f0;--pri:#2f6fed;--pri2:#e8f0ff;--ayah:#2f6fed;--ibu:#e0457b;--danger:#d64545;--c1:#6366f1;--c2:#0ea5e9;--c3:#10b981;--c4:#f59e0b;--c5:#ec4899;--c6:#94a3b8;
@@ -131,7 +131,7 @@ const COLORS=["--c1","--c2","--c3","--c4","--c5","--c6"];
 const KEY="laporan-keuangan-v1";
 // ===== KONFIGURASI SUPABASE =====
 const SUPABASE_URL="https://masiyrbtjvlqqfvxhmqb.supabase.co";
-const SUPABASE_KEY="ISI_ANON_PUBLIC_KEY_DI_SINI"; // Project Settings > API > anon public
+const SUPABASE_KEY="sb_publishable_WvOXgTJMjYwdqWD73aBRtQ_pA_3Xfma"; // publishable key
 const sb=(window.supabase&&!SUPABASE_KEY.startsWith("ISI"))?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const TBL="pengeluaran";
 let data=[],filter="Semua";
