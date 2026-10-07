@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <title>Laporan Keuangan Harian</title>
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--tx:#1b2333;--mut:#6b7488;--bd:#e3e7f0;--pri:#2f6fed;--pri2:#e8f0ff;--ayah:#2f6fed;--ibu:#e0457b;--danger:#d64545;--c1:#6366f1;--c2:#0ea5e9;--c3:#10b981;--c4:#f59e0b;--c5:#ec4899;--c6:#94a3b8;
@@ -84,7 +85,12 @@ tfoot td{font-weight:700;border-bottom:0}
   </div>
 
   <div class="card" style="margin-bottom:16px">
-    <h2>➕ Tambah Pengeluaran</h2>
+    <div class="bar"><h2 style="margin:0">➕ Tambah Pengeluaran</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost" id="tplBtn" type="button">⬇️ Template</button>
+        <button class="btn" id="impBtn" type="button">📥 Import Excel</button>
+        <input type="file" id="impFile" accept=".xlsx,.xls,.csv" hidden>
+      </div></div>
     <form id="f">
       <div class="s2"><label for="user">Pengguna</label><select id="user"><option>Ayah</option><option>Ibu</option></select></div>
       <div class="s2"><label for="date">Tanggal</label><input type="date" id="date" required></div>
@@ -254,6 +260,71 @@ $("themeBtn").addEventListener("click",()=>{
   const r=document.documentElement;
   const dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;
   r.dataset.theme=dark?"light":"dark";
+});
+
+
+// ===== IMPORT EXCEL =====
+function normCat(v){v=String(v||"").trim();if(!v)return "Lain-lain";
+  const m=v.match(/^([1-5])\b/);if(m)return CATS[m[1]-1];
+  const l=v.toLowerCase().replace(/^\d\.\s*/,"");
+  return CATS.find(c=>c.toLowerCase().replace(/^\d\.\s*/,"")===l)||CATS.find(c=>{const k=c.toLowerCase().replace(/^\d\.\s*/,"");return l&&(k.includes(l)||l.includes(k))})||"Lain-lain"}
+function normDate(v){
+  if(typeof v==="number")return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
+  v=String(v||"").trim();let m;
+  if(m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  if(m=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/)){let y=m[3];if(y.length==2)y="20"+y;return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`}
+  return null}
+function normAmt(v){if(typeof v==="number")return Math.round(v);const n=String(v||"").replace(/,\d{1,2}$/,"").replace(/[^\d]/g,"");return n?Number(n):0}
+function parseSheet(buf){
+  const wb=XLSX.read(buf,{type:"array"});
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:""});
+  let hi=rows.slice(0,15).findIndex(r=>r.some(c=>/tanggal|tgl/i.test(c)));
+  const ix={t:0,u:1,k:2,d:3,j:4};
+  if(hi>=0){rows[hi].forEach((c,i)=>{c=String(c);
+    if(/tanggal|tgl|date/i.test(c))ix.t=i;else if(/user|pengguna|oleh/i.test(c))ix.u=i;
+    else if(/kategori|category/i.test(c))ix.k=i;else if(/keperluan|detail|ket|uraian/i.test(c))ix.d=i;
+    else if(/jumlah|nominal|amount|total/i.test(c))ix.j=i})}
+  const out=[];
+  rows.slice(hi+1).forEach(r=>{
+    const date=normDate(r[ix.t]),amt=normAmt(r[ix.j]),detail=String(r[ix.d]||"").trim();
+    if(!date||!amt||!detail)return;
+    const u=String(r[ix.u]||"");
+    out.push({date,amt,detail:detail.slice(0,120),cat:normCat(r[ix.k]),user:/ibu/i.test(u)?"Ibu":/ayah/i.test(u)?"Ayah":$("user").value});
+  });
+  return out;
+}
+async function importRows(list){
+  if(sb){
+    for(let i=0;i<list.length;i+=500){
+      const {error}=await sb.from(TBL).insert(list.slice(i,i+500).map(x=>({tanggal:x.date,user_name:x.user,kategori:x.cat,detail:x.detail,jumlah:x.amt})));
+      if(error){alert("Gagal import: "+error.message);return false}
+    }
+    await load();return true;
+  }
+  list.forEach((x,i)=>data.push({...x,id:Date.now()+i}));save();return true;
+}
+$("impBtn").addEventListener("click",()=>$("impFile").click());
+$("impFile").addEventListener("change",async e=>{
+  const file=e.target.files[0];if(!file)return;
+  try{
+    const all=parseSheet(await file.arrayBuffer());
+    const key=x=>[x.date,x.user,x.detail.toLowerCase(),x.amt].join("|");
+    const have=new Set(data.map(key));
+    const list=all.filter(x=>!have.has(key(x)));
+    if(!all.length){alert("Tidak ada baris valid. Pastikan ada kolom Tanggal, Keperluan, dan Jumlah.");return}
+    if(!list.length){alert("Semua "+all.length+" baris sudah ada (duplikat), tidak ada yang diimpor.");return}
+    if(!confirm(`Impor ${list.length} baris`+(all.length>list.length?` (${all.length-list.length} duplikat dilewati)`:"")+"?"))return;
+    if(await importRows(list)){render();alert("Berhasil mengimpor "+list.length+" baris.")}
+  }catch(err){console.error(err);alert("File tidak bisa dibaca: "+err.message)}
+  e.target.value="";
+});
+$("tplBtn").addEventListener("click",()=>{
+  const ws=XLSX.utils.aoa_to_sheet([["Tanggal","User","Kategori","Keperluan Detail","Jumlah"],
+    ["2026-10-01","Ayah","1. Tagihan & Komitmen Tetap","Wifi Joho",350000],
+    ["2026-10-02","Ibu","3. Konsumsi & Operasional","Belanja dapur",250000]]);
+  ws["!cols"]=[{wch:12},{wch:8},{wch:30},{wch:28},{wch:14}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Laporan");
+  XLSX.writeFile(wb,"template-laporan-keuangan.xlsx");
 });
 
 load().then(render);
