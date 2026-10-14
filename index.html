@@ -66,6 +66,30 @@ tfoot td{font-weight:700;border-bottom:0}
 .dl{display:flex;align-items:center;gap:14px}
 .dl ul{list-style:none;margin:0;padding:0;font-size:.78rem;color:var(--mut)}
 .dl li{display:flex;align-items:center;gap:6px}.dl i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.dh{background:#2b2d3a;color:#fff;border-radius:16px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.dt{font-size:1.2rem;font-weight:700}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{border:0;background:#ff4d6d;color:#fff;border-radius:8px;padding:6px 14px;font-weight:600;cursor:pointer;opacity:.85}
+.pills button.on{background:#fff;color:#ff4d6d;opacity:1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px}
+.kp{text-align:center}.kp .l{font-weight:700;font-size:.85rem}.kp .v{font-size:1.55rem;font-weight:800;margin:2px 0}.kp .s{font-size:.8rem;font-weight:600;color:var(--mut)}
+.up{color:#ff4d6d!important}.dn{color:#1a9aa3!important}
+.dg{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:14px}
+@media(min-width:900px){.w2{grid-column:span 2}}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mg button{border:0;background:#ff4d6d;color:#fff;border-radius:8px;padding:8px 0;font-weight:600;cursor:pointer;opacity:.85}
+.mg button.on{background:#2b2d3a;opacity:1}
+.yn{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px;font-weight:700}
+.yn button{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;width:30px;height:30px;cursor:pointer}
+.lg{display:flex;gap:14px;font-size:.78rem;color:var(--mut);margin-bottom:6px}.lg i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px}
+.hb{display:grid;grid-template-columns:100px 1fr 54px;gap:8px;align-items:center;font-size:.8rem;margin-bottom:6px}
+.hb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb .tr{background:var(--bg);border-radius:4px;height:14px}.hb .tr div{height:100%;background:#1a9aa3;border-radius:4px}.hb b{text-align:right}
+.tm{display:flex;gap:3px;height:210px;color:#fff;font-size:.78rem}.tm>div{border-radius:6px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end;min-width:0;overflow:hidden}.tm b{font-size:.9rem}
+.tm .col{padding:0;gap:3px;background:none}.tm .col>div{flex:1;border-radius:6px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.rvt{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.rvt div{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px}.rvt small{color:var(--mut);display:block;font-size:.75rem}.rvt b{font-size:.95rem}
+.rvp{margin:0;line-height:1.6}
+tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
 </style>
 </head>
 <body>
@@ -78,6 +102,29 @@ tfoot td{font-weight:700;border-bottom:0}
     <button class="btn ghost" id="themeBtn" type="button">🌓 Tema</button>
   </header>
 
+  <nav class="tabs" id="nav" style="margin-bottom:16px"><button data-v="dash" class="on">📊 Dashboard</button><button data-v="lap">📒 Input &amp; Laporan</button></nav>
+
+  <section id="v-dash">
+    <div class="dh"><div class="dt">📊 Dashboard Analisis Pengeluaran</div>
+      <div class="pills" id="dUser"><button data-u="Semua" class="on">Semua</button><button data-u="Ayah">Ayah</button><button data-u="Ibu">Ibu</button></div></div>
+    <div class="kpis">
+      <div class="card kp"><div class="l" id="kTotL"></div><div class="v" id="kTot"></div><div class="s" id="kTotS"></div></div>
+      <div class="card kp"><div class="l">Rata-rata / Hari</div><div class="v" id="kAvg"></div><div class="s" id="kAvgS"></div></div>
+      <div class="card kp"><div class="l">Total Transaksi</div><div class="v" id="kN"></div><div class="s" id="kNS"></div></div>
+    </div>
+    <div class="dg">
+      <div class="card"><h2>🗓️ Pilih Periode</h2><div class="yn"><button id="yPrev">‹</button><span id="yr"></span><button id="yNext">›</button></div><div class="mg" id="mg"></div><div class="sub" style="margin-top:8px;text-align:center">Klik bulan lagi untuk melihat satu tahun penuh</div></div>
+      <div class="card w2"><h2>Bulanan</h2><div class="lg"><span><i style="background:#1a9aa3"></i>Ayah</span><span><i style="background:#ff4d6d"></i>Ibu</span></div><div id="cBar"></div></div>
+      <div class="card"><h2>Pengeluaran per User</h2><div id="cUser"></div></div>
+      <div class="card"><h2>10 Pengeluaran Terbesar</h2><div id="cTop"></div></div>
+      <div class="card"><h2>Pengeluaran / Tahun</h2><div id="cYear"></div></div>
+      <div class="card"><h2>Pengeluaran / Kategori</h2><div id="cTree"></div></div>
+      <div class="card w2"><h2 id="rvT">📝 Review</h2><div id="rv"></div></div>
+    </div>
+    <div class="card"><h2>Rekap Review Bulanan</h2><div class="tw"><table><thead><tr><th>Bulan</th><th class="r">Total</th><th class="r">vs Bulan Lalu</th><th>Kategori Terbesar</th><th class="r">Ayah</th><th class="r">Ibu</th><th class="r">Transaksi</th></tr></thead><tbody id="recap"></tbody></table></div></div>
+  </section>
+
+  <section id="v-lap" style="display:none">
   <div class="card total">
     <div class="lbl">TOTAL KELUARAN <span id="scope">(Semua)</span></div>
     <div class="num" id="grand">Rp 0</div>
@@ -129,6 +176,7 @@ tfoot td{font-weight:700;border-bottom:0}
     <h2>📊 Grafik per Kategori <span class="sub">· 14 hari terakhir, otomatis diperbarui tiap hari</span></h2>
     <div class="cg" id="charts"></div>
   </div>
+  </section>
 </div>
 
 <script>
@@ -192,6 +240,7 @@ function render(){
   $("chipIbu").textContent="Ibu: "+rp(by("Ibu"));
   $("chipN").textContent=rows.length+" transaksi";
   renderCharts(rows);
+  renderDash();
 }
 
 
@@ -262,6 +311,85 @@ $("themeBtn").addEventListener("click",()=>{
   r.dataset.theme=dark?"light":"dark";
 });
 
+
+// ===== DASHBOARD =====
+const BLN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const BLNF=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const PINK="#ff4d6d",TEAL="#1a9aa3";
+let dU="Semua",dY=new Date().getFullYear(),dM=new Date().getMonth();
+const S=a=>a.reduce((s,x)=>s+x.amt,0);
+const rpS=n=>n>=1e9?(n/1e9).toFixed(1).replace(".",",")+" M":n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" Jt":n>=1e3?Math.round(n/1e3)+" rb":String(Math.round(n));
+const pc=(a,b)=>b?Math.round(a/b*1000)/10:0;
+const pct=n=>String(n).replace(".",",")+"%";
+const lbl=(y,m)=>m==null?String(y):BLNF[m]+" "+y;
+const nm=c=>c.replace(/^\d\. /,"");
+const per=(rows,y,m)=>{const p=m==null?String(y):y+"-"+String(m+1).padStart(2,"0");return rows.filter(x=>x.date.startsWith(p))};
+const grp=(rows,key)=>{const o={};rows.forEach(x=>{const k=key(x);o[k]=(o[k]||0)+x.amt});return Object.entries(o).sort((a,b)=>b[1]-a[1])};
+const prevP=(y,m)=>m==null?[y-1,null]:m==0?[y-1,11]:[y,m-1];
+const chg=(t,p)=>p?Math.round((t-p)/p*1000)/10:null;
+const chTx=(c,l)=>c==null?"Belum ada pembanding":(c>=0?"▲ ":"▼ ")+pct(Math.abs(c))+" vs "+l;
+function daysIn(y,m){const n=new Date(),cy=n.getFullYear(),cm=n.getMonth();
+  if(m==null){if(y>cy)return 1;if(y===cy)return Math.max(1,Math.ceil((n-new Date(y,0,1))/864e5));return new Date(y,1,29).getMonth()===1?366:365}
+  if(y===cy&&m===cm)return n.getDate();if(y>cy||(y===cy&&m>cm))return 1;return new Date(y,m+1,0).getDate()}
+function dn(items){
+  const t=S2(items),C=2*Math.PI*38;let off=0;
+  const arcs=items.map(i=>{const l=t?i.v/t*C:0;const e=l?`<circle cx="50" cy="50" r="38" fill="none" stroke="${i.c}" stroke-width="18" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"><title>${i.l}: ${rp(i.v)}</title></circle>`:"";off+=l;return e}).join("");
+  return `<div class="dl"><svg viewBox="0 0 100 100" style="width:130px;flex:none"><circle cx="50" cy="50" r="38" fill="none" stroke="var(--bd)" stroke-width="18"/>${arcs}</svg><ul>${items.map(i=>`<li><i style="background:${i.c}"></i>${i.l} · ${pct(pc(i.v,t))}</li>`).join("")}</ul></div>`}
+const S2=a=>a.reduce((s,x)=>s+x.v,0);
+function renderDash(){
+  const all=data.filter(x=>dU==="Semua"||x.user===dU);
+  const sel=per(all,dY,dM),tot=S(sel),pm=prevP(dY,dM),prev=S(per(all,pm[0],pm[1])),ch=chg(tot,prev),L=lbl(dY,dM),PL=lbl(pm[0],pm[1]);
+  $("kTotL").textContent="Total Pengeluaran · "+L;$("kTot").textContent=rp(tot);
+  $("kTotS").textContent=chTx(ch,PL);$("kTotS").className="s "+(ch==null?"":ch>=0?"up":"dn");
+  const days=daysIn(dY,dM);$("kAvg").textContent=rp(tot/days);$("kAvgS").textContent="dari "+days+" hari";
+  const cats=grp(sel,x=>x.cat);$("kN").textContent=sel.length+" transaksi";$("kNS").textContent=cats.length?"Terbesar: "+nm(cats[0][0]):"Belum ada data";
+  $("yr").textContent=dY;
+  $("mg").innerHTML=BLN.map((b,i)=>`<button data-m="${i}" class="${dM===i?"on":""}">${b}</button>`).join("");
+  document.querySelectorAll("#dUser button").forEach(b=>b.classList.toggle("on",b.dataset.u===dU));
+  // bulanan
+  const mt=BLN.map((_,m)=>{const r=per(all,dY,m);return{a:S(r.filter(x=>x.user==="Ayah")),i:S(r.filter(x=>x.user==="Ibu"))}});
+  const mx=Math.max(...mt.map(x=>x.a+x.i),1),W=560,H=190,Lm=44,bw=(W-Lm)/12;let g="";
+  for(let k=0;k<=4;k++){const y=H-k/4*H;g+=`<line x1="${Lm}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--bd)"/><text class="ax" x="${Lm-4}" y="${y+3}" text-anchor="end">${rpS(mx*k/4)}</text>`}
+  const bars=mt.map((x,m)=>{const x0=Lm+m*bw+4,w=bw-8,ha=x.a/mx*H,hi=x.i/mx*H;
+    return `<g data-m="${m}" style="cursor:pointer" opacity="${dM==null||dM===m?1:.45}"><rect x="${x0}" y="${H-ha}" width="${w}" height="${ha}" fill="${TEAL}"/><rect x="${x0}" y="${H-ha-hi}" width="${w}" height="${hi}" rx="3" fill="${PINK}"/><rect x="${Lm+m*bw}" y="0" width="${bw}" height="${H}" fill="transparent"/><text class="ax" x="${x0+w/2}" y="${H+13}" text-anchor="middle">${BLN[m]}</text><title>${BLNF[m]}: ${rp(x.a+x.i)} (Ayah ${rp(x.a)}, Ibu ${rp(x.i)})</title></g>`}).join("");
+  $("cBar").innerHTML=`<svg viewBox="0 0 ${W} ${H+20}">${g}${bars}</svg>`;
+  // user donut
+  $("cUser").innerHTML=tot?dn([{l:"Ayah",v:S(sel.filter(x=>x.user==="Ayah")),c:TEAL},{l:"Ibu",v:S(sel.filter(x=>x.user==="Ibu")),c:PINK}]):'<div class="empty">Belum ada data</div>';
+  // top 10
+  const top=grp(sel,x=>x.detail.trim().toLowerCase()).slice(0,10),tm=top.length?top[0][1]:1;
+  $("cTop").innerHTML=top.length?top.map(([k,v])=>`<div class="hb"><span title="${esc(k)}">${esc(k.charAt(0).toUpperCase()+k.slice(1))}</span><div class="tr"><div style="width:${v/tm*100}%"></div></div><b>${rpS(v)}</b></div>`).join(""):'<div class="empty">Belum ada data</div>';
+  // per tahun
+  const yrs=[...new Set(all.map(x=>+x.date.slice(0,4)).concat(dY))].sort().slice(-4),yv=yrs.map(y=>S(per(all,y,null))),ym=Math.max(...yv,1),YW=260,YH=120,bs=YH-18;
+  const px=yrs.map((_,i)=>yrs.length==1?YW/2:34+i*(YW-68)/(yrs.length-1)),py=yv.map(v=>bs-v/ym*(YH-50));
+  const path=yrs.length==1?`M${px[0]-55},${bs} L${px[0]},${py[0]} L${px[0]+55},${bs}Z`:`M${px[0]},${bs} `+px.map((x,i)=>`L${x},${py[i]}`).join(" ")+` L${px[px.length-1]},${bs}Z`;
+  $("cYear").innerHTML=`<svg viewBox="0 0 ${YW} ${YH}"><path d="${path}" fill="${TEAL}" fill-opacity=".35" stroke="${TEAL}" stroke-width="2"/>${px.map((x,i)=>`<circle cx="${x}" cy="${py[i]}" r="3.5" fill="${TEAL}"/><text class="ax" x="${x}" y="${Math.max(py[i]-7,9)}" text-anchor="middle">${rpS(yv[i])}</text><text class="ax" x="${x}" y="${YH-3}" text-anchor="middle" font-weight="700">${yrs[i]}</text>`).join("")}</svg>`;
+  // treemap
+  const tc=CATS.map((c,i)=>({l:c,v:S(sel.filter(x=>x.cat===c)),i})).filter(a=>a.v>0).sort((a,b)=>b.v-a.v);
+  const cell=c=>`<span>${esc(nm(c.l))}</span><b>${rpS(c.v)}</b>`,bg=c=>`background:${css(COLORS[c.i])}`;
+  $("cTree").innerHTML=tc.length?`<div class="tm"><div style="flex:${tc[0].v};${bg(tc[0])}">${cell(tc[0])}</div>`+(tc.length>1?`<div class="col" style="flex:${S2(tc.slice(1))}">${tc.slice(1).map(c=>`<div style="flex:${c.v};${bg(c)}">${cell(c)}</div>`).join("")}</div>`:"")+`</div>`:'<div class="empty">Belum ada data</div>';
+  // review
+  $("rvT").textContent="📝 Review "+L;
+  if(!sel.length)$("rv").innerHTML='<div class="empty">Belum ada pengeluaran pada periode ini.</div>';
+  else{
+    const us=grp(sel,x=>x.user),dd=grp(sel,x=>x.date),big=sel.reduce((a,b)=>b.amt>a.amt?b:a),hib=S(sel.filter(x=>x.cat===CATS[4]))/tot;
+    let tx=`Pada ${L}, total pengeluaran ${rp(tot)} dari ${sel.length} transaksi`+(ch==null?".":`, ${ch>=0?"naik":"turun"} ${pct(Math.abs(ch))} dibanding ${PL}.`)+` Kategori terbesar adalah ${nm(cats[0][0])} (${pct(pc(cats[0][1],tot))} dari total).`+(us.length>1?` ${us[0][0]} paling banyak mengeluarkan (${pct(pc(us[0][1],tot))}).`:"")+` Hari paling boros: ${fmtDate(dd[0][0])} sebesar ${rp(dd[0][1])}.`;
+    if(hib>.25)tx+=` Porsi Hiburan &amp; Gaya Hidup cukup besar (${pct(Math.round(hib*1000)/10)}), bisa jadi bahan evaluasi.`;
+    if(ch!=null&&ch>20)tx+=" Kenaikan cukup tajam, periksa pos terbesar di atas.";
+    $("rv").innerHTML=`<div class="rvt"><div><small>Total</small><b>${rp(tot)}</b></div><div><small>Rata-rata / hari</small><b>${rp(tot/days)}</b></div><div><small>Kategori terbesar</small><b>${esc(nm(cats[0][0]))}</b></div><div><small>Pengeluaran tunggal terbesar</small><b>${esc(big.detail)} · ${rp(big.amt)}</b></div></div><p class="rvp">${tx}</p>`}
+  // rekap bulanan
+  $("recap").innerHTML=BLN.map((_,m)=>{const r=per(all,dY,m),t=S(r),p=m?S(per(all,dY,m-1)):S(per(all,dY-1,11)),c=chg(t,p),cs=grp(r,x=>x.cat);
+    return `<tr class="cl ${dM===m?"sel":""}" data-m="${m}"><td>${BLNF[m]}</td><td class="r">${t?rp(t):"–"}</td><td class="r ${c==null||!t?"":c>=0?"up":"dn"}">${t&&c!=null?(c>=0?"▲ ":"▼ ")+pct(Math.abs(c)):"–"}</td><td>${cs.length?esc(nm(cs[0][0])):"–"}</td><td class="r">${rp(S(r.filter(x=>x.user==="Ayah")))}</td><td class="r">${rp(S(r.filter(x=>x.user==="Ibu")))}</td><td class="r">${r.length}</td></tr>`}).join("");
+}
+const pickM=m=>{dM=dM===m?null:m;renderDash()};
+$("mg").addEventListener("click",e=>{const b=e.target.closest("button");if(b)pickM(+b.dataset.m)});
+$("cBar").addEventListener("click",e=>{const g=e.target.closest("[data-m]");if(g)pickM(+g.dataset.m)});
+$("recap").addEventListener("click",e=>{const r=e.target.closest("tr");if(r)pickM(+r.dataset.m)});
+$("yPrev").addEventListener("click",()=>{dY--;renderDash()});
+$("yNext").addEventListener("click",()=>{dY++;renderDash()});
+$("dUser").addEventListener("click",e=>{const b=e.target.closest("button");if(b){dU=b.dataset.u;renderDash()}});
+$("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("on",x===b));
+  $("v-dash").style.display=b.dataset.v==="dash"?"":"none";$("v-lap").style.display=b.dataset.v==="lap"?"":"none"});
 
 // ===== IMPORT EXCEL =====
 function normCat(v){v=String(v||"").trim();if(!v)return "Lain-lain";
