@@ -91,6 +91,11 @@ tfoot td{font-weight:700;border-bottom:0}
 .rvp{margin:0;line-height:1.6}
 tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
 .xg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);padding:18px;width:min(560px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dbtn{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.rc,#chkAll{width:auto;cursor:pointer}
+.dng{background:var(--danger)}
 </style>
 </head>
 <body>
@@ -170,9 +175,13 @@ tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
           <button data-u="Semua" class="on">Semua</button><button data-u="Ayah">Ayah</button><button data-u="Ibu">Ibu</button>
         </div>
       </div>
+      <div class="bar" style="margin-bottom:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0" for="fMonth">Periode</label><input type="month" id="fMonth" style="width:auto"><button class="btn ghost" id="fClr" type="button">Semua periode</button></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="delSel" type="button" disabled>🗑️ Hapus terpilih (0)</button><button class="btn dng" id="delAll" type="button" disabled>🗑️ Hapus semua yang tampil</button></div>
+      </div>
       <div class="tw">
         <table>
-          <thead><tr><th>Tanggal</th><th>User</th><th>Kategori</th><th>Keperluan</th><th class="r">Jumlah</th><th></th></tr></thead>
+          <thead><tr><th style="width:28px"><input type="checkbox" id="chkAll" aria-label="Pilih semua"></th><th>Tanggal</th><th>User</th><th>Kategori</th><th>Keperluan</th><th class="r">Jumlah</th><th></th></tr></thead>
           <tbody id="tb"></tbody>
           <tfoot id="tf"></tfoot>
         </table>
@@ -192,6 +201,26 @@ tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
   </div>
   </section>
 </div>
+
+<dialog id="impDlg">
+  <h2>📥 Import Excel · <span id="iName"></span></h2>
+  <div class="xg" style="margin-bottom:10px">
+    <div><label for="iY">Tahun</label><input type="number" id="iY" min="2000" max="2100"></div>
+    <div><label for="iM">Bulan (jika tidak ada di file)</label><select id="iM"></select></div>
+    <div><label for="iU">User (jika kolom User kosong)</label><select id="iU"><option>Ayah</option><option>Ibu</option></select></div>
+  </div>
+  <label style="display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--tx)"><input type="checkbox" id="iD" checked style="width:auto"> Lewati data yang sudah ada (duplikat)</label>
+  <div id="iInfo" style="font-weight:700;margin:10px 0 6px"></div>
+  <div class="tw" id="iPrev"></div>
+  <div id="iWarn" class="sub" style="margin-top:6px"></div>
+  <div class="dbtn"><button class="btn ghost" data-close type="button">Batal</button><button class="btn" id="iOk" type="button">Impor</button></div>
+</dialog>
+<dialog id="delDlg">
+  <h2 id="dTitle"></h2>
+  <p id="dMsg"></p>
+  <div id="dTypeW"><label for="dType">Ketik HAPUS untuk konfirmasi</label><input id="dType" autocomplete="off"></div>
+  <div class="dbtn"><button class="btn ghost" data-close type="button">Batal</button><button class="btn dng" id="dOk" type="button">Hapus</button></div>
+</dialog>
 
 <script>
 const CATS=["1. Tagihan & Komitmen Tetap","2. Belanja Barang & Aset","3. Konsumsi & Operasional","4. Sosial & Organisasi","5. Hiburan & Gaya Hidup","Lain-lain"];
@@ -231,17 +260,18 @@ async function remove(id){
 function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
 
 function render(){
-  const rows=data.filter(x=>filter==="Semua"||x.user===filter).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  const rows=data.filter(x=>(filter==="Semua"||x.user===filter)&&(!$("fMonth").value||x.date.startsWith($("fMonth").value))).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   const total=rows.reduce((s,x)=>s+x.amt,0);
 
-  $("tb").innerHTML=rows.length?rows.map(x=>`<tr>
+  $("tb").innerHTML=rows.length?rows.map(x=>`<tr><td><input type="checkbox" class="rc" data-id="${x.id}" ${selIds.has(x.id)?"checked":""}></td>
     <td>${fmtDate(x.date)}</td>
     <td><span class="badge ${x.user}">${x.user}</span></td>
     <td>${esc(x.cat)}</td><td>${esc(x.detail)}</td>
     <td class="r">${rp(x.amt).replace("Rp ","")}</td>
     <td><button class="del" data-id="${x.id}" title="Hapus" aria-label="Hapus">✕</button></td></tr>`).join("")
-    :`<tr><td colspan="6" class="empty">Belum ada data. Tambahkan pengeluaran pertama di atas.</td></tr>`;
-  $("tf").innerHTML=rows.length?`<tr><td colspan="4">Total</td><td class="r">${rp(total)}</td><td></td></tr>`:"";
+    :`<tr><td colspan="7" class="empty">Belum ada data. Tambahkan pengeluaran pertama di atas.</td></tr>`;
+  $("tf").innerHTML=rows.length?`<tr><td colspan="5">Total</td><td class="r">${rp(total)}</td><td></td></tr>`:"";
+  syncSel(rows);
 
   $("sum").innerHTML=CATS.map((c,i)=>{
     const v=rows.filter(x=>x.cat===c).reduce((s,x)=>s+x.amt,0);
@@ -449,29 +479,56 @@ function normCat(v){v=String(v||"").trim();if(!v)return "Lain-lain";
   const l=v.toLowerCase().replace(/^\d\.\s*/,"");
   return CATS.find(c=>c.toLowerCase().replace(/^\d\.\s*/,"")===l)||CATS.find(c=>{const k=c.toLowerCase().replace(/^\d\.\s*/,"");return l&&(k.includes(l)||l.includes(k))})||"Lain-lain"}
 function normDate(v){
-  if(typeof v==="number")return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
+  if(typeof v==="number")return v<32?null:new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
   v=String(v||"").trim();let m;
   if(m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
   if(m=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/)){let y=m[3];if(y.length==2)y="20"+y;return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`}
   return null}
 function normAmt(v){if(typeof v==="number")return Math.round(v);const n=String(v||"").replace(/,\d{1,2}$/,"").replace(/[^\d]/g,"");return n?Number(n):0}
-function parseSheet(buf){
-  const wb=XLSX.read(buf,{type:"array"});
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:""});
-  let hi=rows.slice(0,15).findIndex(r=>r.some(c=>/tanggal|tgl/i.test(c)));
-  const ix={t:0,u:1,k:2,d:3,j:4};
-  if(hi>=0){rows[hi].forEach((c,i)=>{c=String(c);
-    if(/tanggal|tgl|date/i.test(c))ix.t=i;else if(/user|pengguna|oleh/i.test(c))ix.u=i;
-    else if(/kategori|category/i.test(c))ix.k=i;else if(/keperluan|detail|ket|uraian/i.test(c))ix.d=i;
-    else if(/jumlah|nominal|amount|total/i.test(c))ix.j=i})}
-  const out=[];
-  rows.slice(hi+1).forEach(r=>{
-    const date=normDate(r[ix.t]),amt=normAmt(r[ix.j]),detail=String(r[ix.d]||"").trim();
-    if(!date||!amt||!detail)return;
-    const u=String(r[ix.u]||"");
-    out.push({date,amt,detail:detail.slice(0,120),cat:normCat(r[ix.k]),user:/ibu/i.test(u)?"Ibu":/ayah/i.test(u)?"Ayah":$("user").value});
+const MN={januari:0,jan:0,februari:1,pebruari:1,feb:1,maret:2,mar:2,april:3,apr:3,mei:4,may:4,juni:5,jun:5,juli:6,jul:6,agustus:7,agust:7,agu:7,agt:7,aug:7,september:8,sept:8,sep:8,oktober:9,okt:9,oct:9,november:10,nov:10,desember:11,des:11,dec:11};
+const pad2=n=>String(n).padStart(2,"0");
+function parseSheet(buf,o){
+  const wb=XLSX.read(buf,{type:"array"}),out=[],warn=[];let yHint=null,clamp=0,noM=0;
+  wb.SheetNames.forEach(sn=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:""});
+    let ix=null,bm=null,by=null,lastCat="";
+    rows.forEach((r,ri)=>{
+      if(r.some(c=>/^\s*(tanggal|tgl)\s*$/i.test(String(c)))){
+        ix={};
+        r.forEach((c,i)=>{c=String(c).trim();
+          if(ix.t==null&&/^(tanggal|tgl|date)$/i.test(c))ix.t=i;
+          else if(ix.u==null&&/^(user|pengguna|oleh)$/i.test(c))ix.u=i;
+          else if(ix.k==null&&/^(kategori|category)/i.test(c))ix.k=i;
+          else if(ix.d==null&&/(keperluan|detail|uraian|keterangan)/i.test(c))ix.d=i;
+          else if(ix.j==null&&/^(jumlah|nominal|amount)/i.test(c))ix.j=i});
+        bm=null;by=null;lastCat="";
+        [...r.slice(0,3),...(rows[ri+1]||[]).slice(0,3)].forEach(c=>{
+          const t=String(c).trim().toLowerCase();if(!t)return;
+          const mm=t.match(/[a-z]+/);if(mm&&bm==null&&MN[mm[0]]!=null)bm=MN[mm[0]];
+          const yy=t.match(/\b(20\d\d)\b/);if(yy&&!/^\d{4}-\d{2}-\d{2}/.test(t)){by=+yy[1];yHint=yHint||by}});
+        return;
+      }
+      if(!ix||ix.t==null||ix.d==null||ix.j==null)return;
+      const ck=ix.k!=null?String(r[ix.k]==null?"":r[ix.k]).trim():"";if(ck)lastCat=ck;
+      const detail=String(r[ix.d]==null?"":r[ix.d]).trim(),amt=normAmt(r[ix.j]);
+      if(!detail||!amt||/^total/i.test(detail))return;
+      const tv=r[ix.t];let day=null,date=null;
+      if(typeof tv==="number"&&Number.isInteger(tv)&&tv>=1&&tv<=31)day=tv;
+      else if(typeof tv==="string"&&/^\d{1,2}$/.test(tv.trim()))day=+tv.trim();
+      if(day){
+        const m=bm!=null?bm:o.month,y=by||o.year,dim=new Date(y,m+1,0).getDate();
+        if(bm==null)noM++;
+        if(day>dim){day=dim;clamp++}
+        date=`${y}-${pad2(m+1)}-${pad2(day)}`;
+      }else date=normDate(tv);
+      if(!date)return;
+      const u=ix.u!=null?String(r[ix.u]||""):"";
+      out.push({date,amt,detail:detail.slice(0,120),cat:normCat(lastCat),user:/ibu/i.test(u)?"Ibu":/ayah/i.test(u)?"Ayah":o.user});
+    });
   });
-  return out;
+  if(noM)warn.push(noM+" baris tidak punya nama bulan di file, dipakai bulan pilihan Anda.");
+  if(clamp)warn.push(clamp+" baris punya tanggal yang tidak ada di bulannya, disesuaikan ke tanggal terakhir bulan itu.");
+  return{rows:out,warn,year:yHint};
 }
 async function importRows(list){
   if(sb){
@@ -483,21 +540,77 @@ async function importRows(list){
   }
   list.forEach((x,i)=>data.push({...x,id:Date.now()+i}));save();return true;
 }
+let impBuf=null,impList=[];
+$("iM").innerHTML=BLNF.map((m,i)=>`<option value="${i}">${m}</option>`).join("");
+function impPreview(){
+  const o={year:+$("iY").value||new Date().getFullYear(),month:+$("iM").value,user:$("iU").value};
+  const r=parseSheet(impBuf,o),key=x=>[x.date,x.user,x.detail.toLowerCase(),x.amt].join("|"),have=new Set(data.map(key)),sk=$("iD").checked;
+  const dup=sk?r.rows.filter(x=>have.has(key(x))).length:0;
+  impList=sk?r.rows.filter(x=>!have.has(key(x))):r.rows;
+  const g={};impList.forEach(x=>{const k=x.date.slice(0,7);g[k]=g[k]||{n:0,t:0};g[k].n++;g[k].t+=x.amt});
+  const ks=Object.keys(g).sort();
+  $("iPrev").innerHTML=ks.length?`<table style="min-width:0"><thead><tr><th>Bulan</th><th class="r">Baris</th><th class="r">Total</th></tr></thead><tbody>${ks.map(k=>`<tr><td>${BLNF[+k.slice(5)-1]} ${k.slice(0,4)}</td><td class="r">${g[k].n}</td><td class="r">${rp(g[k].t)}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">Tidak ada baris valid yang bisa diimpor.</div>';
+  $("iInfo").textContent=impList.length+" baris akan diimpor"+(dup?" · "+dup+" duplikat dilewati":"");
+  $("iWarn").innerHTML=r.warn.map(w=>"<div>⚠️ "+esc(w)+"</div>").join("");
+  $("iOk").disabled=!impList.length;return r;
+}
+["iY","iM","iU","iD"].forEach(id=>$(id).addEventListener("change",()=>impBuf&&impPreview()));
+$("iY").addEventListener("input",()=>impBuf&&impPreview());
 $("impBtn").addEventListener("click",()=>$("impFile").click());
 $("impFile").addEventListener("change",async e=>{
   const file=e.target.files[0];if(!file)return;
   try{
-    const all=parseSheet(await file.arrayBuffer());
-    const key=x=>[x.date,x.user,x.detail.toLowerCase(),x.amt].join("|");
-    const have=new Set(data.map(key));
-    const list=all.filter(x=>!have.has(key(x)));
-    if(!all.length){alert("Tidak ada baris valid. Pastikan ada kolom Tanggal, Keperluan, dan Jumlah.");return}
-    if(!list.length){alert("Semua "+all.length+" baris sudah ada (duplikat), tidak ada yang diimpor.");return}
-    if(!confirm(`Impor ${list.length} baris`+(all.length>list.length?` (${all.length-list.length} duplikat dilewati)`:"")+"?"))return;
-    if(await importRows(list)){render();alert("Berhasil mengimpor "+list.length+" baris.")}
+    impBuf=await file.arrayBuffer();$("iName").textContent=file.name;
+    const n=new Date(),first=parseSheet(impBuf,{year:n.getFullYear(),month:n.getMonth(),user:$("user").value});
+    $("iY").value=first.year||n.getFullYear();$("iM").value=n.getMonth();$("iU").value=$("user").value;
+    impPreview();$("impDlg").showModal();
   }catch(err){console.error(err);alert("File tidak bisa dibaca: "+err.message)}
   e.target.value="";
 });
+$("iOk").addEventListener("click",async()=>{
+  $("iOk").disabled=true;const n=impList.length;
+  if(await importRows(impList)){$("impDlg").close();render();alert("Berhasil mengimpor "+n+" baris.")}else $("iOk").disabled=false;
+});
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>b.closest("dialog").close()));
+
+// ===== HAPUS DATA (terpilih / semua yang tampil) =====
+let viewRows=[];const selIds=new Set();let delKind="";
+function syncSel(rows){
+  viewRows=rows;const ids=new Set(rows.map(x=>x.id));[...selIds].forEach(i=>{if(!ids.has(i))selIds.delete(i)});
+  $("chkAll").checked=rows.length>0&&rows.every(x=>selIds.has(x.id));
+  $("delSel").textContent="🗑️ Hapus terpilih ("+selIds.size+")";$("delSel").disabled=!selIds.size;
+  $("delAll").textContent="🗑️ Hapus semua yang tampil ("+rows.length+")";$("delAll").disabled=!rows.length;
+}
+async function removeMany(ids){
+  if(sb){
+    for(let i=0;i<ids.length;i+=200){
+      const {error}=await sb.from(TBL).delete().in("id",ids.slice(i,i+200));
+      if(error){alert("Gagal menghapus: "+error.message);return false}
+    }
+    await load();return true;
+  }
+  const st=new Set(ids);data=data.filter(x=>!st.has(x.id));save();return true;
+}
+const scopeTxt=()=>{const v=$("fMonth").value;return(v?BLNF[+v.slice(5)-1]+" "+v.slice(0,4):"Semua periode")+" · "+(filter==="Semua"?"Semua user":"Hanya "+filter)};
+function openDel(kind){
+  delKind=kind;const rs=kind==="sel"?viewRows.filter(x=>selIds.has(x.id)):viewRows;if(!rs.length)return;
+  $("dTitle").textContent=kind==="sel"?"Hapus data terpilih?":"Hapus SEMUA data yang tampil?";
+  $("dMsg").innerHTML="<b>"+rs.length+" data</b> senilai <b>"+rp(S(rs))+"</b> akan dihapus permanen dan tidak bisa dikembalikan.<br><span class='sub'>Cakupan: "+scopeTxt()+"</span>";
+  $("dTypeW").style.display=kind==="all"?"":"none";$("dType").value="";$("dOk").disabled=kind==="all";
+  $("delDlg").showModal();
+}
+$("delSel").addEventListener("click",()=>openDel("sel"));
+$("delAll").addEventListener("click",()=>openDel("all"));
+$("dType").addEventListener("input",()=>{$("dOk").disabled=$("dType").value.trim().toUpperCase()!=="HAPUS"});
+$("dOk").addEventListener("click",async()=>{
+  const ids=(delKind==="sel"?viewRows.filter(x=>selIds.has(x.id)):viewRows).map(x=>x.id);
+  $("dOk").disabled=true;
+  if(await removeMany(ids)){selIds.clear();$("delDlg").close();render()}else $("dOk").disabled=false;
+});
+$("tb").addEventListener("change",e=>{const c=e.target.closest(".rc");if(!c)return;const id=Number(c.dataset.id);c.checked?selIds.add(id):selIds.delete(id);syncSel(viewRows)});
+$("chkAll").addEventListener("change",e=>{viewRows.forEach(x=>e.target.checked?selIds.add(x.id):selIds.delete(x.id));render()});
+$("fMonth").addEventListener("change",render);
+$("fClr").addEventListener("click",()=>{$("fMonth").value="";render()});
 $("tplBtn").addEventListener("click",()=>{
   const ws=XLSX.utils.aoa_to_sheet([["Tanggal","User","Kategori","Keperluan Detail","Jumlah"],
     ["2026-10-01","Ayah","1. Tagihan & Komitmen Tetap","Wifi Joho",350000],
