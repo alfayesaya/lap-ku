@@ -90,6 +90,7 @@ tfoot td{font-weight:700;border-bottom:0}
 .rvt div{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px}.rvt small{color:var(--mut);display:block;font-size:.75rem}.rvt b{font-size:.95rem}
 .rvp{margin:0;line-height:1.6}
 tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
+.xg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
 </style>
 </head>
 <body>
@@ -113,7 +114,7 @@ tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
       <div class="card kp"><div class="l">Total Transaksi</div><div class="v" id="kN"></div><div class="s" id="kNS"></div></div>
     </div>
     <div class="dg">
-      <div class="card"><h2>🗓️ Pilih Periode</h2><div class="yn"><button id="yPrev">‹</button><span id="yr"></span><button id="yNext">›</button></div><div class="mg" id="mg"></div><div class="sub" style="margin-top:8px;text-align:center">Klik bulan lagi untuk melihat satu tahun penuh</div></div>
+      <div class="card"><h2>🗓️ Pilih Periode</h2><div class="yn"><button id="yPrev">‹</button><span id="yr"></span><button id="yNext">›</button></div><div class="mg" id="mg"></div><div class="sub" style="margin-top:8px;text-align:center">Klik bulan lagi untuk melihat satu tahun penuh</div><button class="btn ghost" id="dExp" type="button" style="width:100%;margin-top:10px">📤 Ekspor periode ini</button></div>
       <div class="card w2"><h2>Bulanan</h2><div class="lg"><span><i style="background:#1a9aa3"></i>Ayah</span><span><i style="background:#ff4d6d"></i>Ibu</span></div><div id="cBar"></div></div>
       <div class="card"><h2>Pengeluaran per User</h2><div id="cUser"></div></div>
       <div class="card"><h2>10 Pengeluaran Terbesar</h2><div id="cTop"></div></div>
@@ -146,6 +147,19 @@ tr.cl{cursor:pointer}tr.cl:hover td,tr.sel td{background:var(--pri2)}
       <div class="s2"><label for="amt">Jumlah (Rp)</label><input id="amt" inputmode="numeric" placeholder="900.000" required></div>
       <div class="s1" style="align-self:end"><button class="btn" style="width:100%" type="submit">Simpan</button></div>
     </form>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2>📤 Ekspor Data</h2>
+    <div class="xg">
+      <div><label for="xMode">Periode</label><select id="xMode"><option value="bulan">Per Bulan</option><option value="rentang">Rentang Tanggal</option></select></div>
+      <div id="xM"><label for="xMonth">Bulan</label><input type="month" id="xMonth"></div>
+      <div id="xF" style="display:none"><label for="xFrom">Dari tanggal</label><input type="date" id="xFrom"></div>
+      <div id="xT" style="display:none"><label for="xTo">Sampai tanggal</label><input type="date" id="xTo"></div>
+      <div><label for="xUser">User</label><select id="xUser"><option>Semua</option><option>Ayah</option><option>Ibu</option></select></div>
+      <div><label for="xFmt">Format</label><select id="xFmt"><option value="xlsx">Excel (.xlsx)</option><option value="csv">CSV (.csv)</option></select></div>
+      <div><button class="btn" id="xBtn" type="button" style="width:100%">⬇️ Ekspor</button></div>
+    </div>
   </div>
 
   <div class="grid">
@@ -188,6 +202,8 @@ const SUPABASE_URL="https://masiyrbtjvlqqfvxhmqb.supabase.co";
 const SUPABASE_KEY="sb_publishable_WvOXgTJMjYwdqWD73aBRtQ_pA_3Xfma"; // publishable key
 const sb=(window.supabase&&!SUPABASE_KEY.startsWith("ISI"))?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 const TBL="pengeluaran";
+window.addEventListener("unhandledrejection",e=>{const r=e.reason;console.error("Error tak tertangani:",(r&&r.message)||JSON.stringify(r))});
+window.addEventListener("error",e=>console.error("Error:",e.message,e.filename+":"+e.lineno));
 let data=[],filter="Semua";
 
 const $=id=>document.getElementById(id);
@@ -197,9 +213,9 @@ const fmtDate=d=>{const [y,m,t]=d.split("-");return `${t}/${m}/${y}`};
 
 async function load(){
   if(sb){
-    const {data:r,error}=await sb.from(TBL).select("*").order("tanggal",{ascending:false}).limit(5000);
+    let r,error;try{({data:r,error}=await sb.from(TBL).select("*").order("tanggal",{ascending:false}).limit(5000))}catch(e){error={message:String((e&&e.message)||e)}}
     if(!error){data=r.map(x=>({id:x.id,user:x.user_name,date:x.tanggal,cat:x.kategori,detail:x.detail,amt:Number(x.jumlah)}));$("st").textContent="☁️ Terhubung ke Supabase";return}
-    console.error(error);$("st").textContent="⚠️ Supabase gagal: "+error.message;
+    const em=error.message||JSON.stringify(error);console.error("Supabase gagal:",em,error.hint||"",error.code||"");$("st").textContent="⚠️ Supabase gagal: "+em+(error.code?" ["+error.code+"]":"");
   }else $("st").textContent="💾 Mode lokal (isi anon key untuk Supabase)";
   try{const r=localStorage.getItem(KEY);data=r?JSON.parse(r):[]}catch(e){data=[]}
 }
@@ -390,6 +406,42 @@ $("dUser").addEventListener("click",e=>{const b=e.target.closest("button");if(b)
 $("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("on",x===b));
   $("v-dash").style.display=b.dataset.v==="dash"?"":"none";$("v-lap").style.display=b.dataset.v==="lap"?"":"none"});
+
+// ===== EKSPOR =====
+const dl2=(blob,name)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+(function(){const n=new Date();$("xMonth").value=ymd(n).slice(0,7);$("xFrom").value=ymd(n).slice(0,8)+"01";$("xTo").value=ymd(n)})();
+$("xMode").addEventListener("change",()=>{const b=$("xMode").value==="bulan";$("xM").style.display=b?"":"none";$("xF").style.display=$("xT").style.display=b?"none":""});
+function xRange(){
+  if($("xMode").value==="bulan"){const v=$("xMonth").value;if(!v)return null;const [y,m]=v.split("-");return{a:v+"-01",b:v+"-"+String(new Date(y,m,0).getDate()).padStart(2,"0"),name:v}}
+  const a=$("xFrom").value,b=$("xTo").value;if(!a||!b||a>b)return null;return{a,b,name:a+"_sd_"+b}}
+$("xBtn").addEventListener("click",()=>{
+  const r=xRange();if(!r){alert("Periode belum valid. Pilih bulan, atau isi tanggal awal dan akhir (awal tidak boleh melewati akhir).");return}
+  const u=$("xUser").value;
+  const rows=data.filter(x=>x.date>=r.a&&x.date<=r.b&&(u==="Semua"||x.user===u)).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+  if(!rows.length){alert("Tidak ada data pada periode ini.");return}
+  const aoa=[["Tanggal","User","Kategori","Keperluan Detail","Jumlah"],...rows.map(x=>[x.date,x.user,x.cat,x.detail,x.amt]),[],["","","","TOTAL KELUARAN",S(rows)]];
+  const fn="laporan-keuangan_"+r.name+(u!=="Semua"?"_"+u:"");
+  if($("xFmt").value==="csv"){
+    const csv=aoa.map(a=>a.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+    dl2(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),fn+".csv");return}
+  const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:12},{wch:8},{wch:30},{wch:32},{wch:15}];
+  for(let i=2;i<=aoa.length;i++){const c=ws["E"+i];if(c&&typeof c.v==="number")c.z="#,##0"}
+  const tot=S(rows);
+  const sm=[["Ringkasan "+r.a+" s/d "+r.b+(u!=="Semua"?" · "+u:"")],[],["Kategori","Jumlah","% dari Total"],
+    ...CATS.map(c=>{const v=S(rows.filter(x=>x.cat===c));return[c,v,tot?Math.round(v/tot*1000)/1000:0]}),["TOTAL KELUARAN",tot,1],[],["User","Jumlah"],
+    ["Ayah",S(rows.filter(x=>x.user==="Ayah"))],["Ibu",S(rows.filter(x=>x.user==="Ibu"))]];
+  const w2=XLSX.utils.aoa_to_sheet(sm);w2["!cols"]=[{wch:32},{wch:16},{wch:14}];
+  for(let i=4;i<=3+CATS.length+1;i++){if(w2["B"+i])w2["B"+i].z="#,##0";if(w2["C"+i])w2["C"+i].z="0.0%"}
+  ["B"+(CATS.length+7),"B"+(CATS.length+8)].forEach(k=>{if(w2[k])w2[k].z="#,##0"});
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Laporan");XLSX.utils.book_append_sheet(wb,w2,"Ringkasan");
+  XLSX.writeFile(wb,fn+".xlsx");
+});
+$("dExp").addEventListener("click",()=>{
+  $("xUser").value=dU;
+  if(dM==null){$("xMode").value="rentang";$("xFrom").value=dY+"-01-01";$("xTo").value=dY+"-12-31"}
+  else{$("xMode").value="bulan";$("xMonth").value=dY+"-"+String(dM+1).padStart(2,"0")}
+  $("xMode").dispatchEvent(new Event("change"));$("xBtn").click();
+});
 
 // ===== IMPORT EXCEL =====
 function normCat(v){v=String(v||"").trim();if(!v)return "Lain-lain";
