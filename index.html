@@ -96,6 +96,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dbtn{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 .rc,#chkAll{width:auto;cursor:pointer}
 .dng{background:var(--danger)}
+.tm{height:250px}.tm span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tm .col>div{min-height:40px;padding:6px 8px}
+[data-cat]{cursor:pointer}.tm [data-cat]:hover{filter:brightness(1.1)}.cat[data-cat]:hover .row span{text-decoration:underline}
+.gc{cursor:pointer;font-variant-numeric:tabular-nums;font-size:.8rem;white-space:nowrap}.gc:hover{outline:2px solid var(--pri);outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -127,6 +131,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <div class="card"><h2>Pengeluaran / Kategori</h2><div id="cTree"></div></div>
       <div class="card w2"><h2 id="rvT">📝 Review</h2><div id="rv"></div></div>
     </div>
+    <div class="card" style="margin-bottom:14px"><h2>📈 Kenaikan per Bulan per Kategori <span class="sub">· % dibanding bulan sebelumnya</span></h2>
+    <div class="tw"><table style="min-width:780px"><thead id="gH"></thead><tbody id="gB"></tbody></table></div>
+    <div class="sub" style="margin-top:6px">▲ merah = pengeluaran naik · ▼ hijau = turun · "baru" = bulan sebelumnya tidak ada pengeluaran. Klik sel untuk melihat rinciannya.</div></div>
     <div class="card"><h2>Rekap Review Bulanan</h2><div class="tw"><table><thead><tr><th>Bulan</th><th class="r">Total</th><th class="r">vs Bulan Lalu</th><th>Kategori Terbesar</th><th class="r">Ayah</th><th class="r">Ibu</th><th class="r">Transaksi</th></tr></thead><tbody id="recap"></tbody></table></div></div>
   </section>
 
@@ -177,7 +184,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       </div>
       <div class="bar" style="margin-bottom:10px">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0" for="fMonth">Periode</label><input type="month" id="fMonth" style="width:auto"><button class="btn ghost" id="fClr" type="button">Semua periode</button></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="delSel" type="button" disabled>🗑️ Hapus terpilih (0)</button><button class="btn dng" id="delAll" type="button" disabled>🗑️ Hapus semua yang tampil</button></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="delSel" type="button" disabled>🗑️ Hapus terpilih (0)</button></div>
       </div>
       <div class="tw">
         <table>
@@ -214,6 +221,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="tw" id="iPrev"></div>
   <div id="iWarn" class="sub" style="margin-top:6px"></div>
   <div class="dbtn"><button class="btn ghost" data-close type="button">Batal</button><button class="btn" id="iOk" type="button">Impor</button></div>
+</dialog>
+<dialog id="catDlg">
+  <h2 id="cdT"></h2>
+  <div class="sub" id="cdS" style="margin-bottom:8px"></div>
+  <div class="tw" style="max-height:55vh;overflow:auto"><table style="min-width:0"><thead><tr><th>Tanggal</th><th>User</th><th>Keperluan</th><th class="r">Jumlah</th></tr></thead><tbody id="cdB"></tbody><tfoot id="cdF"></tfoot></table></div>
+  <div class="dbtn"><button class="btn ghost" data-close type="button">Tutup</button></div>
 </dialog>
 <dialog id="delDlg">
   <h2 id="dTitle"></h2>
@@ -276,7 +289,7 @@ function render(){
   $("sum").innerHTML=CATS.map((c,i)=>{
     const v=rows.filter(x=>x.cat===c).reduce((s,x)=>s+x.amt,0);
     const p=total?v/total*100:0;
-    return `<div class="cat"><div class="row"><span>${esc(c)}</span><b>${rp(v)}</b></div>
+    return `<div class="cat" data-cat="${esc(c)}" title="Klik untuk melihat rincian"><div class="row"><span>${esc(c)}</span><b>${rp(v)}</b></div>
     <div class="track"><div class="fill" style="width:${p}%;background:var(${COLORS[i]})"></div></div></div>`}).join("");
   $("sumTotal").textContent=rp(total);
   $("grand").textContent=rp(total);
@@ -412,7 +425,7 @@ function renderDash(){
   // treemap
   const tc=CATS.map((c,i)=>({l:c,v:S(sel.filter(x=>x.cat===c)),i})).filter(a=>a.v>0).sort((a,b)=>b.v-a.v);
   const cell=c=>`<span>${esc(nm(c.l))}</span><b>${rpS(c.v)}</b>`,bg=c=>`background:${css(COLORS[c.i])}`;
-  $("cTree").innerHTML=tc.length?`<div class="tm"><div style="flex:${tc[0].v};${bg(tc[0])}">${cell(tc[0])}</div>`+(tc.length>1?`<div class="col" style="flex:${S2(tc.slice(1))}">${tc.slice(1).map(c=>`<div style="flex:${c.v};${bg(c)}">${cell(c)}</div>`).join("")}</div>`:"")+`</div>`:'<div class="empty">Belum ada data</div>';
+  $("cTree").innerHTML=tc.length?`<div class="tm"><div data-cat="${esc(tc[0].l)}" style="flex:${tc[0].v};${bg(tc[0])}">${cell(tc[0])}</div>`+(tc.length>1?`<div class="col" style="flex:${S2(tc.slice(1))}">${tc.slice(1).map(c=>`<div data-cat="${esc(c.l)}" style="flex:${c.v};${bg(c)}">${cell(c)}</div>`).join("")}</div>`:"")+`</div>`:'<div class="empty">Belum ada data</div>';
   // review
   $("rvT").textContent="📝 Review "+L;
   if(!sel.length)$("rv").innerHTML='<div class="empty">Belum ada pengeluaran pada periode ini.</div>';
@@ -422,6 +435,18 @@ function renderDash(){
     if(hib>.25)tx+=` Porsi Hiburan &amp; Gaya Hidup cukup besar (${pct(Math.round(hib*1000)/10)}), bisa jadi bahan evaluasi.`;
     if(ch!=null&&ch>20)tx+=" Kenaikan cukup tajam, periksa pos terbesar di atas.";
     $("rv").innerHTML=`<div class="rvt"><div><small>Total</small><b>${rp(tot)}</b></div><div><small>Rata-rata / hari</small><b>${rp(tot/days)}</b></div><div><small>Kategori terbesar</small><b>${esc(nm(cats[0][0]))}</b></div><div><small>Pengeluaran tunggal terbesar</small><b>${esc(big.detail)} · ${rp(big.amt)}</b></div></div><p class="rvp">${tx}</p>`}
+  // kenaikan per bulan per kategori
+  const sv=(c,y,m)=>S(per(all,y,m).filter(x=>c==null||x.cat===c));
+  $("gH").innerHTML="<tr><th>Kategori</th>"+BLN.map(b=>`<th class="r">${b}</th>`).join("")+"</tr>";
+  $("gB").innerHTML=[...CATS,null].map(c=>"<tr"+(c==null?' style="font-weight:700"':"")+"><td>"+(c==null?"TOTAL":esc(nm(c)))+"</td>"+BLN.map((_,m)=>{
+    const cur=sv(c,dY,m),p=m?sv(c,dY,m-1):sv(c,dY-1,11),tip=`${BLNF[m]}: ${rp(cur)} (sebelumnya ${rp(p)})`;
+    let tx="–",st="",cl="";
+    if(cur||p){
+      if(!p){tx="baru";cl="up";st="background:rgba(255,77,109,.3)"}
+      else{const g=Math.round((cur-p)/p*1000)/10;tx=(g>=0?"▲ ":"▼ ")+pct(Math.abs(g));cl=g>=0?"up":"dn";
+        const a=Math.min(Math.abs(g)/100,1)*.35+.05;st=`background:${g>=0?"rgba(255,77,109,":"rgba(26,154,163,"}${a})`}
+    }
+    return `<td class="r gc ${cl}" ${c!=null&&cur?`data-c="${esc(c)}" data-m="${m}"`:""} style="${st}" title="${tip}">${tx}</td>`}).join("")+"</tr>").join("");
   // rekap bulanan
   $("recap").innerHTML=BLN.map((_,m)=>{const r=per(all,dY,m),t=S(r),p=m?S(per(all,dY,m-1)):S(per(all,dY-1,11)),c=chg(t,p),cs=grp(r,x=>x.cat);
     return `<tr class="cl ${dM===m?"sel":""}" data-m="${m}"><td>${BLNF[m]}</td><td class="r">${t?rp(t):"–"}</td><td class="r ${c==null||!t?"":c>=0?"up":"dn"}">${t&&c!=null?(c>=0?"▲ ":"▼ ")+pct(Math.abs(c)):"–"}</td><td>${cs.length?esc(nm(cs[0][0])):"–"}</td><td class="r">${rp(S(r.filter(x=>x.user==="Ayah")))}</td><td class="r">${rp(S(r.filter(x=>x.user==="Ibu")))}</td><td class="r">${r.length}</td></tr>`}).join("");
@@ -573,13 +598,27 @@ $("iOk").addEventListener("click",async()=>{
 });
 document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>b.closest("dialog").close()));
 
+// ===== RINCIAN PER KATEGORI =====
+function showCat(cat,rows,label){
+  const rs=rows.filter(x=>x.cat===cat).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+  $("cdT").textContent=nm(cat)+" · "+label;
+  $("cdS").textContent=rs.length+" transaksi · total "+rp(S(rs));
+  $("cdB").innerHTML=rs.length?rs.map(x=>`<tr><td>${fmtDate(x.date)}</td><td><span class="badge ${x.user}">${x.user}</span></td><td>${esc(x.detail)}</td><td class="r">${rp(x.amt).replace("Rp ","")}</td></tr>`).join(""):'<tr><td colspan="4" class="empty">Tidak ada data.</td></tr>';
+  $("cdF").innerHTML=rs.length?`<tr><td colspan="3">Total</td><td class="r">${rp(S(rs))}</td></tr>`:"";
+  $("catDlg").showModal();
+}
+const dRowsAll=()=>data.filter(x=>dU==="Semua"||x.user===dU);
+const dLbl=(y,m)=>lbl(y,m)+(dU!=="Semua"?" · "+dU:"");
+$("cTree").addEventListener("click",e=>{const t=e.target.closest("[data-cat]");if(t)showCat(t.dataset.cat,per(dRowsAll(),dY,dM),dLbl(dY,dM))});
+$("gB").addEventListener("click",e=>{const t=e.target.closest(".gc");if(t&&t.dataset.c)showCat(t.dataset.c,per(dRowsAll(),dY,+t.dataset.m),dLbl(dY,+t.dataset.m))});
+$("sum").addEventListener("click",e=>{const t=e.target.closest(".cat[data-cat]");if(t)showCat(t.dataset.cat,viewRows,scopeTxt())});
+
 // ===== HAPUS DATA (terpilih / semua yang tampil) =====
 let viewRows=[];const selIds=new Set();let delKind="";
 function syncSel(rows){
   viewRows=rows;const ids=new Set(rows.map(x=>x.id));[...selIds].forEach(i=>{if(!ids.has(i))selIds.delete(i)});
   $("chkAll").checked=rows.length>0&&rows.every(x=>selIds.has(x.id));
   $("delSel").textContent="🗑️ Hapus terpilih ("+selIds.size+")";$("delSel").disabled=!selIds.size;
-  $("delAll").textContent="🗑️ Hapus semua yang tampil ("+rows.length+")";$("delAll").disabled=!rows.length;
 }
 async function removeMany(ids){
   if(sb){
@@ -600,7 +639,6 @@ function openDel(kind){
   $("delDlg").showModal();
 }
 $("delSel").addEventListener("click",()=>openDel("sel"));
-$("delAll").addEventListener("click",()=>openDel("all"));
 $("dType").addEventListener("input",()=>{$("dOk").disabled=$("dType").value.trim().toUpperCase()!=="HAPUS"});
 $("dOk").addEventListener("click",async()=>{
   const ids=(delKind==="sel"?viewRows.filter(x=>selIds.has(x.id)):viewRows).map(x=>x.id);
